@@ -3,179 +3,183 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>単語学習アプリ</title>
+    <title>学習クイズアプリ</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; text-align: center; }
-        .hidden { display: none; }
-        .btn { display: inline-block; margin: 5px; padding: 10px 20px; font-size: 16px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 5px; }
-        .btn:active { background: #0056b3; }
-        #quiz-area { margin-top: 20px; padding: 20px; border: 1px solid #ccc; border-radius: 5px; }
-        input[type="text"] { font-size: 16px; padding: 5px; width: 80%; margin-bottom: 10px; }
-        #result { font-weight: bold; margin: 10px 0; }
+        body { font-family: sans-serif; max-width: 600px; margin: 20px auto; padding: 10px; background: #f9f9f9; text-align: center; }
+        .box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 15px; }
+        button { font-size: 16px; padding: 10px 20px; margin: 8px; cursor: pointer; border: none; border-radius: 5px; background: #007bff; color: white; transition: 0.1s; }
+        button:active { transform: scale(0.95); }
+        .sub-btn { background: #28a745; }
+        input[type="text"] { font-size: 16px; padding: 8px; width: 80%; max-width: 300px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; }
+        .correct { color: green; font-weight: bold; }
+        .wrong { color: red; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div id="view-categories">
+    <div id="category-screen" class="box">
         <h2>カテゴリー</h2>
-        <button class="btn" onclick="selectCategory('英コミュ')">英コミュ</button>
-        <button class="btn" onclick="selectCategory('現国')">現国</button>
-        <button class="btn" onclick="selectCategory('古典')">古典</button>
-        <button class="btn" onclick="selectCategory('論表')">論表</button>
+        <button onclick="selectCategory('英コミュ')">英コミュ</button>
+        <button onclick="selectCategory('現国')">現国</button>
+        <button onclick="selectCategory('古典')">古典</button>
+        <button onclick="selectCategory('論表')">論表</button>
     </div>
 
-    <div id="view-subcategories" class="hidden">
+    <div id="data-screen" class="box" style="display:none;">
         <h2 id="selected-category-title"></h2>
-        <button id="sub-category-btn" class="btn" onclick="showModes()"></button>
-        <br><button class="btn" style="background:#6c757d;" onclick="goBack('view-categories')">戻る</button>
+        <div id="data-buttons-container"></div>
+        <br><button onclick="backToCategory()" style="background:#6c757d;">戻る</button>
     </div>
 
-    <div id="view-modes" class="hidden">
-        <h2>モード選択</h2>
-        <button class="btn" onclick="startQuiz('3つ後')">誤は3つ後にするもの</button>
-        <button class="btn" onclick="startQuiz('前後')">前後両方</button>
-        <button class="btn" onclick="startQuiz('タイピング')">タイピング</button>
-        <br><button class="btn" style="background:#6c757d;" onclick="goBack('view-subcategories')">戻る</button>
+    <div id="mode-screen" class="box" style="display:none;">
+        <h3 id="selected-data-title"></h3>
+        <button class="sub-btn" onclick="startQuiz('3after')">誤は3つ後にするもの</button>
+        <button class="sub-btn" onclick="startQuiz('both')">前後両方</button>
+        <button class="sub-btn" onclick="startQuiz('typing')">タイピング</button>
+        <br><br><button onclick="backToData()" style="background:#6c757d;">戻る</button>
     </div>
 
-    <div id="view-quiz" class="hidden">
-        <h2 id="mode-title">クイズ</h2>
-        <div id="quiz-area">
-            <p id="question-text" style="font-size: 18px; font-weight: bold;"></p>
-            <p id="typing-hint" style="color: #666; font-size: 14px;"></p>
-            <input type="text" id="answer-input" placeholder="答えを入力してEnter" onkeydown="if(event.key==='Enter') checkAnswer()">
-            <button class="btn" onclick="checkAnswer()">送信</button>
-            <p id="result"></p>
-            <button id="next-btn" class="btn hidden" onclick="nextQuestion()">次へ</button>
-        </div>
-        <br><button class="btn" style="background:#6c757d;" onclick="goBack('view-modes')">終了して戻る</button>
+    <div id="quiz-screen" class="box" style="display:none;">
+        <h3 id="mode-title"></h3>
+        <div id="hint-area" style="font-size:14px; color:#666; margin-bottom:10px;"></div>
+        <div id="question-display" style="font-size:24px; font-weight:bold; margin:10px 0;"></div>
+        
+        <input type="text" id="answer-input" placeholder="答えを入力してEnter" onkeydown="if(event.key==='Enter') checkAnswer()">
+        <br>
+        <button onclick="checkAnswer()">決定</button>
+        
+        <div id="result-message" style="margin-top:15px; min-height: 40px;"></div>
     </div>
 
     <script>
-        // 各カテゴリーに対応する配列データ
-        const rawData = {
-            "英コミュ": [["〜に驚く", "be surprised at"], ["意匠", "物を作る上での工夫"]],
-            "現国": [["昇華", "より高度な状態に高められること"], ["寡黙","ほとんど物を言わないさま"]],
-            "古典": [["薫陶","人徳によって影響を与え、よい方に導くこと"]],
-            "論表": [["〜に驚く", "be surprised at"]]
-        };
+        // データ定義
+        const kanjiData = [["昇華", "より高度な状態に高められること"], ["寡黙","ほとんど物を言わないさま"], ["薫陶","人徳によって影響を与え、よい方に導くこと"], ["意匠","物を作る上での工夫"], ["拒否","聞き入れることなくはねつけること"], ["自負","じぶんの能力などにじ信を持つこと"], ["制御","思うように操ること"], ["偏狭","自分だけのせまい考えにとらわれるさま"], ["倒錯","社会的規範に反し異常であること"], ["狭義","せまい方の意味"], ["卑近","手ぢかでありふれているさま"], ["虚構","想像力によって本当のことであるかのように組みたてること"], ["位相","変化するものが特定の場面でとる姿"], ["逸話","世間にあまり知られていないはなし"], ["前提","基礎となる判断・物事をなす土台"], ["情緒","人に感慨をもよおさせる独特の味わい"], ["濃厚","こいさま"], ["駆動","ちからを伝えてうごかすこと"]];
+        const gobiData = [["複数の人が同じようなことを言う", "口をそろえる"], ["思いがけず自然と次から次へと言葉が出る", "口を突いて出る"], ["①どっしりと構え、物事に取り組む ②一所に落ち着く", "腰を据える"], ["ある物事に見込みがないと諦めて手を引く", "さじを投げる"], ["苦労する。努力を要する。困難である", "骨が折れる"], ["素晴らしいものに接して、深く感動・共鳴する", "琴線に触れる"], ["反響をもたらすような問題や意見を投げかける", "一石を投じる"], ["物事の核心をつく。的確に要点をつかむ", "的に射る"], ["〜についてはともかく。〜は別として", "いざ知らず"], ["だまされないように用心する", "眉に唾をつける"], ["自分の考えややり方などにこだわって、まったく変えようとしないこと", "かたくな"], ["状況や表情などの既知の情報から、ほかのことが推測できる", "察しがつく"], ["心の中に思い浮かべる姿や情景", "イメージ"], ["実際と同じような状態をつくり出して実験・研究を行うこと", "シミュレーション"], ["（自らの意志で）精一杯努力する、一生懸命働く", "精を出す"], ["厳しく育てられて成長する", "培われる"], ["あらかじめ出来上がっていること", "出来合い"], ["①きまりが悪い。何となく恥ずかしい ②運が悪い。巡り合わせ・時間が悪い", "間が悪い"], ["（うそや冗談を）言葉どおりに受け取る。本気にする", "真に受ける"], ["劣ったものとして扱う。ばかにする。見見下す", "おとしめる"], ["同じ性質を持つ物事が含まれる範囲", "カテゴリー"], ["体系や秩序。系統立った組織。方式", "システム"], ["連続的な量を区切って、数字で表示すること", "デジタル"], ["（損害・被害を受ける）危険性。危険", "リスク"], ["一つの面や表現が多くの意味を持っているさま", "多義的"], ["①わけ。理由。事情 ②古くからの言い伝え。由緒。由来。来歴", "いわれ"], ["表現があからさまで、含みや味わいがない", "身も蓋もない"], ["実際にはできないが、その気持ちはとても強くある様子", "〜はやまやまだか"], ["うまいことを言って人をだます", "たぶらかす"], ["急に熱を出したり、ぶつけたりするさま", "はたと"], ["間に置く。間に入れる", "介する"], ["すぐ始められるように、また物事がうまく運ぶように、準備を整えること", "お膳立て"], ["①自負。自己意識 ②（エゴイズムの意味で）自分だけよければよいとする考え方。利己主義", "エゴ"], ["気持ちや意見を互いに伝達し合うこと。相互伝達", "コミュニケーション"], ["①抑圧され無意識に形成されるゆがんだ感情 ②劣等感", "コンプレックス"], ["否定的人。消極的", "ネガティブ"], ["他人に対して思いやりや愛想がない様子", "そっけない"], ["どちらかというと。いつも", "むしろ"], ["大勢の人が寄り集まって", "寄ってたかって"], ["今となっては", "もはや"], ["ある動作や行動などに対する結果や反応を見て、軌道修正や調整をすること", "フィードバック"], ["まるで。ちょうど（後に「〜ようだ・〜ごとく」を伴うことが多い）", "あたかも"], ["いいも悪いもかまわず。無理やりに", "いやおうなしに"], ["たとえば言えば。言ってみれば", "言わば"], ["それ以上のものではない。ただ〜なだけだ", "〜にすぎない"], ["ある限りの。考えられる限りの。全て", "ありとあらゆる"], ["少しも。全然", "夢にも"], ["そのことだけに精神を集中する様子。ただただ", "ひたすら"], ["経過。経過。手続き。手順", "プロセス"], ["①やりにくいことを押し切って実行する様子 ②別に。特に。わざわざ（後に打消語を伴う）", "あえて"], ["二番目。一番大事なことではないこと", "二の次"], ["意見の一致。合意。同意", "コンセンサス"], ["動機付け。実行する意欲を起こさせるきっかけ。やる気", "モチベーション"], ["疑いようのないほど確かな様子。由緒正しい", "れっきとした"], ["感覚によってものごとを感じ取る能力。感覚。あるいは『感じる能力（性）』。", "感性"], ["①ものごとの根本を探求する能力。②合理的に考え判断する能力。あるいは『理の能力（性）』。", "理性"], ["思考能力。あるいは『悟る（わかる）能力（性）』。", "悟性"], ["①自分という意識。②自分という意識をもった存在。あるいは『自分の我』。", "自我"], ["①他者がもつ自分という意識。②自分という意識をもった他者。あるいは『他人の我』。", "他我"], ["自分。", "自己"], ["自分以外の存在。", "他者"], ["他から切り離されている一人の人間。", "個人、個"], ["かかわりあっている二人以上の人間。", "社会"], ["他者とのかかわりの中で自分を実感すること。自己同一性。", "アイデンティティ、自己同一性"], ["①制約や束縛からの解放。②自分の思ったとおりにできること。", "自由"], ["一つの国民によって構成される国家。", "国民国家"], ["文化を共有する（と考えられている）集団。国民。", "民族"], ["民衆を政治の中心とする立場。", "民主主義、デモクラシー"], ["資本をもとに利潤を追求する経済体制。", "資本主義"], ["民族主義。国家主義。", "ナショナリズム"], ["世界化。", "グローバリゼーション"], ["根本に戻って考えようとする立場。", "原理主義"], ["すべての文化が同じ価値をもつと考える立場。", "文化相対主義、多文化主義"], ["さまざまな文化が互いにまじりあい、変化し続けているという目線・とらえ方。", "ピジン・クレオール説"], ["世界を区切り、認識すること。", "分節"], ["意味をもつもの。", "記号"], ["ものごとの意味内容。", "概念"], ["つくりごと。", "虚構、フィクション"], ["人々に共有され、何かを成り立たせる話。", "物語"]];
 
+        // 状態管理用変数
         let currentCategory = "";
+        let currentRawData = [];
+        let selectedDataName = "";
         let currentMode = "";
-        let wordList = [];
-        let currentWord = null;
+        let activeWordList = [];
+        let isWaitingForNext = false; // パス（空欄Enter）後の待機フラグ
 
-        // 画面切り替えの共通関数
-        function switchView(viewId) {
-            ["view-categories", "view-subcategories", "view-modes", "view-quiz"].forEach(id => {
-                document.getElementById(id).classList.add("hidden");
-            });
-            document.getElementById(viewId).classList.remove("hidden");
-        }
-
-        function goBack(targetView) {
-            switchView(targetView);
-        }
-
-        // 1. カテゴリー選択時
+        // 1. カテゴリー選択
         function selectCategory(category) {
             currentCategory = category;
             document.getElementById("selected-category-title").innerText = category;
-            document.getElementById("sub-category-btn").innerText = category + "のクイズを始める";
-            switchView("view-subcategories");
+            const container = document.getElementById("data-buttons-container");
+            container.innerHTML = ""; 
+
+            if (category === "現国") {
+                container.innerHTML = `
+                    <button onclick="selectData('漢字', kanjiData)">漢字</button>
+                    <button onclick="selectData('語彙ノート、キーワード', gobiData)">語彙ノート、キーワード</button>
+                `;
+            } else {
+                container.innerHTML = "<p style='color:#999;'>データが未登録です</p>";
+            }
+            switchScreen("data-screen");
         }
 
-        // 2. 名前がついたボタンが押された時、モード選択へ
-        function showModes() {
-            switchView("view-modes");
+        // 2. データ選択
+        function selectData(dataName, dataArray) {
+            selectedDataName = dataName;
+            currentRawData = dataArray;
+            document.getElementById("selected-data-title").innerText = dataName + " を選択中";
+            switchScreen("mode-screen");
         }
 
-        // 3. クイズ開始処理（配列の準備・シャッフル）
+        // 3. クイズ開始（モードに応じた配列作成とシャッフル）
         function startQuiz(mode) {
             currentMode = mode;
-            document.getElementById("mode-title").innerText = `${currentCategory} [${mode}]`;
-            
-            // 元データのコピーを取得
-            let baseData = JSON.parse(JSON.stringify(rawData[currentCategory]));
+            let titleText = "";
+            activeWordList = [];
 
-            // 「前後両方」モードの場合は、問題を反転させたものも追加
-            if (mode === "前後") {
-                let doubleData = [];
-                baseData.forEach(item => {
-                    doubleData.push([item[0], item[1]]);
-                    doubleData.push([item[1], item[0]]); // 逆にする
+            // モードに応じた配列のディープコピーと加工
+            if (mode === "3after" || mode === "typing") {
+                activeWordList = currentRawData.map(item => [item[0], item[1]]);
+            } else if (mode === "both") {
+                currentRawData.forEach(item => {
+                    activeWordList.push([item[0], item[1]]);
+                    activeWordList.push([item[1], item[0]]);
                 });
-                baseData = doubleData;
             }
 
-            // シャッフル
-            wordList = baseData.sort(() => Math.random() - 0.5);
+            // 配列のシャッフル
+            activeWordList.sort(() => Math.random() - 0.5);
+
+            if (mode === "3after") titleText = "モード：誤は3つ後にするもの";
+            if (mode === "both") titleText = "モード：前後両方";
+            if (mode === "typing") titleText = "モード：タイピング";
             
-            switchView("view-quiz");
+            document.getElementById("mode-title").innerText = titleText;
+            switchScreen("quiz-screen");
             nextQuestion();
         }
 
         // 4. 次の問題を表示
         function nextQuestion() {
-            if (wordList.length === 0) {
-                document.getElementById("quiz-area").innerHTML = "<h3>達成！</h3>";
+            isWaitingForNext = false;
+            document.getElementById("result-message").innerHTML = "";
+            const inputField = document.getElementById("answer-input");
+            inputField.value = "";
+            inputField.disabled = false;
+            inputField.focus();
+
+            if (activeWordList.length === 0) {
+                document.getElementById("hint-area").innerText = "";
+                document.getElementById("question-display").innerText = "🎉 達成！ 🎉";
+                inputField.style.display = "none";
+                setTimeout(backToData, 2000); // 2秒後に自動でモード選択に戻る
                 return;
             }
 
-            currentWord = wordList[0];
-            document.getElementById("result").innerText = "";
-            document.getElementById("answer-input").value = "";
-            document.getElementById("answer-input").disabled = false;
-            document.getElementById("next-btn").classList.add("hidden");
+            inputField.style.display = "inline-block";
+            const current = activeWordList[0];
 
-            if (currentMode === "タイピング") {
-                // タイピングモード：問題と答え（a1とa2）の両方を表示し、a2を打たせる
-                document.getElementById("question-text").innerText = `問題: ${currentWord[0]}`;
-                document.getElementById("typing-hint").innerText = `見本: ${currentWord[1]}`;
+            if (currentMode === "typing") {
+                document.getElementById("hint-area").innerText = `【答え表示中】 ${current[1]}`;
+                document.getElementById("question-display").innerText = `表示：${current[0]}`;
             } else {
-                // 通常・前後モード：問題のみ表示
-                document.getElementById("question-text").innerText = `問題: ${currentWord[0]}`;
-                document.getElementById("typing-hint").innerText = "";
+                document.getElementById("hint-area").innerText = "";
+                document.getElementById("question-display").innerText = `問題: ${current[0]}`;
             }
-            document.getElementById("answer-input").focus();
         }
 
-        // 5. 解答チェック
+        // 5. 解答チェック（Pythonのロジックを忠実に再現）
         function checkAnswer() {
-            if (document.getElementById("answer-input").disabled) return; // すでに解答済みの場合は無視
-
-            const userAnswer = document.getElementById("answer-input").value.trim();
-            const correctAnswer = currentWord[1];
-            const resultElement = document.getElementById("result");
-
-            // 空欄の場合はスキップ（PythonのEnterキー継続と同じ挙動）
-            if (userAnswer === "") {
-                wordList.shift();
-                wordList.push(currentWord); // パスしたものは最後に回す
+            const inputField = document.getElementById("answer-input");
+            const resultDiv = document.getElementById("result-message");
+            
+            // パス（空欄Enter）後の待機中にEnterが押された場合、次の問題へ
+            if (isWaitingForNext) {
                 nextQuestion();
                 return;
             }
 
-            document.getElementById("answer-input").disabled = true;
+            const answer = inputField.value.trim();
+            const current = activeWordList[0];
 
-            // 判定（大文字小文字を区別しない）
-            if (userAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
-                resultElement.style.color = "green";
-                resultElement.innerText = "正解";
-                wordList.shift(); // 正解なので先頭から削除
-            } else {
-                resultElement.style.color = "red";
-                resultElement.innerText = `不正解（正解: ${correctAnswer}）`;
-                
-                wordList.shift(); // 一度先頭から外して
-                // 誤は3つ後にするもの（インデックス2の位置に挿入。残り少なければ末尾）
-                let insertIndex = Math.min(2, wordList.length);
-                wordList.splice(insertIndex, 0, currentWord);
+            // 1. 空欄（パス）の場合の処理
+            if (answer === "") {
+                resultDiv.innerHTML = "<span style='color:orange;'>Console: Enter key で次へ</span>";
+                inputField.disabled = true;
+                isWaitingForNext = true;
+                return;
             }
 
-            document.getElementById("next-btn").classList.remove("hidden");
-            document.getElementById("next-btn").focus();
-        }
-    </script>
-</body>
-</html>
+            // 2. 正誤判定
+            activeWordList.shift(); // 先頭を削除
+
+            if (answer.toLowerCase() === current[1].toLowerCase()) {
+                resultDiv.innerHTML = "<span class='correct'>正解！</span>";
+                setTimeout(nextQuestion, 800); // 正解時は一瞬待って自動で次へ
+            } else {
+                resultDiv.innerHTML = `<span class='wrong'>不正解</span><br><span style='font-size:14px;color:#555;'>（正解: ${current[1]}）</span>`;
+                
+                // 不正解の時は「3つ後（インデックス2）」に再挿入
+                if (activeWordList.length >= 2) {
+                    activeWordList.splice(2, 0, current);
+                } else {
+                    activeWordList.push(current); // 残りが少
