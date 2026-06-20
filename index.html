@@ -2,210 +2,259 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>学習アプリ</title>
+    <title>単語クイズアプリ</title>
     <style>
-        body { font-family: sans-serif; max-width: 600px; margin: 20px auto; padding: 10px; text-align: center; }
-        button { margin: 8px; padding: 12px 24px; font-size: 16px; cursor: pointer; border-radius: 5px; border: 1px solid #ccc; background: #f9f9f9; }
-        button:active { background: #ddd; }
-        .hidden { display: none; }
-        input[type="text"] { font-size: 18px; padding: 8px; width: 80%; margin-bottom: 10px; }
-        #result { font-weight: bold; font-size: 18px; margin: 15px 0; }
+        body { font-family: sans-serif; padding: 20px; background: #f0f2f5; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h2 { border-bottom: 2px solid #007bff; padding-bottom: 5px; }
+        .btn-group { display: flex; flex-wrap: wrap; gap: 10px; margin: 15px 0; }
+        button { padding: 10px 15px; font-size: 16px; border: none; border-radius: 4px; background: #007bff; color: white; cursor: pointer; transition: 0.2s; }
+        button:hover { background: #0056b3; }
+        button.secondary { background: #6c757d; }
+        button.secondary:hover { background: #5a6268; }
+        .quiz-box { background: #f8f9fa; border: 1px solid #dee2e6; padding: 20px; border-radius: 4px; margin-top: 20px; }
+        .problem { font-size: 20px; font-weight: bold; margin-bottom: 15px; color: #111; }
+        .hint { color: #666; font-size: 14px; margin-bottom: 10px; }
+        input[type="text"] { width: 100%; padding: 10px; font-size: 16px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 10px; }
+        .result { font-weight: bold; margin-top: 10px; font-size: 18px; }
+        .correct { color: green; }
+        .incorrect { color: red; }
     </style>
 </head>
 <body>
 
-    <div id="screen-category">
+<div class="container">
+    <div id="category-section">
         <h2>カテゴリー</h2>
-        <button onclick="selectCategory('英コミュ')">英コミュ</button>
-        <button onclick="selectCategory('現国')">現国</button>
-        <button onclick="selectCategory('古典')">古典</button>
-        <button onclick="selectCategory('論表')">論表</button>
-    </div>
-
-    <div id="screen-deck" class="hidden">
-        <h2 id="deck-title">単語帳を選択</h2>
-        <div id="deck-buttons"></div>
-        <button onclick="showScreen('category')">戻る</button>
-    </div>
-
-    <div id="screen-mode" class="hidden">
-        <h2>モードを選択</h2>
-        <button onclick="startQuiz('normal')">誤は3つ後にするもの</button>
-        <button onclick="startQuiz('both')">前後両方</button>
-        <button onclick="startQuiz('typing')">タイピング</button>
-        <br><button onclick="backToDeck()">戻る</button>
-    </div>
-
-    <div id="screen-quiz" class="hidden">
-        <h2 id="quiz-mode-title">クイズ</h2>
-        <div id="question-area" style="font-size: 20px; margin: 20px 0; font-weight: bold;"></div>
-        <div id="hint-area" style="font-size: 16px; color: #666; margin-bottom: 10px;"></div>
-        
-        <div id="input-area">
-            <input type="text" id="answer-input" placeholder="答えを入力" autocomplete="off">
-            <br><button onclick="checkAnswer()">送信</button>
+        <div class="btn-group">
+            <button onclick="selectCategory('英コミュ')">英コミュ</button>
+            <button onclick="selectCategory('現国')">現国</button>
+            <button onclick="selectCategory('古典')">古典</button>
+            <button onclick="selectCategory('論表')">論表</button>
         </div>
-        
-        <div id="result"></div>
-        <button id="next-btn" class="hidden" onclick="nextQuestion()">次へ</button>
     </div>
 
-    <script>
-        // データ定義
-        const datasets = {
-            "現国": {
-                "漢字": [
-                    ["昇華", "より高度な状態に高められること"], ["寡黙","ほとんど物を言わないさま"], ["薫陶","人徳によって影響を与え、よい方に導くこと"], ["意匠","物を作る上での工夫"], ["拒否","聞き入れることなくはねつけること"], ["自負","じぶんの能力などにじ信を持つこと"], ["制御","思うように操ること"], ["偏狭","自分だけのせまい考えにとらわれるさま"], ["倒錯","社会的規範に反し異常であること"], ["狭義","せまい方の意味"], ["卑近","手ぢかでありふれているさま"], ["虚構","想像力によって本当のことであるかのように組みたてること"], ["位相","変化するものが特定の場面でとる姿"], ["逸話","世間にあまり知られていないはなし"], ["前提","基礎となる判断・物事をなす土台"], ["情緒","人に感慨をもよおさせる独特の味わい"], ["濃厚","こいさま"], ["駆動","ちからを伝えてうごかすこと"]
-                ],
-                "語彙ノート、キーワード": [
-                    ["複数の人が同じようなことを言う", "口をそろえる"], ["思いがけず自然と次から次へと言葉が出る", "口を突いて出る"], ["①どっしりと構え、物事に取り組む ②一所に落ち着く", "腰を据える"], ["ある物事に見込みがないと諦めて手を引く", "さじを投げる"], ["苦労する。努力を要する。困難である", "骨が折れる"], ["素晴らしいものに接して、深く感動・共鳴する", "琴線に触れる"], ["反響をもたらすような問題や意見を投げかける", "一石を投じる"], ["物事の核心をつく。的確に要点をつかむ", "的に射る"], ["〜についてはともかく。〜は別として", "いざ知らず"], ["だまされないように用心する", "眉に唾をつける"], ["自分の考えややり方などにこだわって、まったく変えようとしないこと", "かたくな"], ["状況や表情などの既知の情報から、ほかのことが推測できる", "察しがつく"], ["心の中に思い浮かべる姿や情景", "イメージ"], ["実際と同じような状態をつくり出して実験・研究を行うこと", "シミュレーション"], ["（自らの意志で）精一杯努力する、一生懸命働く", "精を出す"], ["厳しく育てられて成長する", "培われる"], ["あらかじめ出来上がっていること", "出来合い"], ["①きまりが悪い。何となく恥ずかしい ②運が悪い。巡り合わせ・時間が悪い", "間が悪い"], ["（うそや冗談を）言葉どおりに受け取る。本気にする", "真に受ける"], ["劣ったものとして扱う。ばかにする。見見下す", "おとしめる"], ["同じ性質を持つ物事が含まれる範囲", "カテゴリー"], ["体系や秩序。系統立った組織。方式", "システム"], ["連続的な量を区切って、数字で表示すること", "デジタル"], ["（損害・被害を受ける）危険性。危険", "リスク"], ["一つの面や表現が多くの意味を持っているさま", "多義的"], ["①わけ。理由。事情 ②古くからの言い伝え。由緒。由来。来歴", "いわれ"], ["表現がああからさまで、含みや味わいがない", "身も蓋もない"], ["実際にはできないが、その気持ちはとても強くある様子", "〜はやまやまだか"], ["うまいことを言って人をだます", "たぶらかす"], ["急に熱を出したり、ぶつけたりするさま", "はたと"], ["間に置く。間に入れる", "介する"], ["すぐ始められるように、また物事がうまく運ぶように、準備を整えること", "お膳立て"], ["①自負。自己意識 ②（エゴイズムの意味で）自分だけよければよいとする考え方。利己主義", "エゴ"], ["気持ちや意見を互いに伝達し合うこと。相互伝達", "コミュニケーション"], ["①抑圧され無意識に形成されるゆがんだ感情 ②劣等感", "コンプレックス"], ["否定的人。消極的", "ネガティブ"], ["他人に対して思いやりや愛想がない様子", "そっけない"], ["どちらかというと。いつも", "むしろ"], ["大勢の人が寄り集まって", "寄ってたかって"], ["今となっては", "もはや"], ["ある動作や行動などに対する結果や反応を見て、軌道修正や調整をすること", "フィードバック"], ["まるで。ちょうど（後に「〜ようだ・〜ごとく」を伴うことが多い）", "あたかも"], ["いいも悪いもかまわず。無理やりに", "いやおうなしに"], ["たとえば言えば。言ってみれば", "言わば"], ["それ以上のものではない。ただ〜なだけだ", "〜にすぎない"], ["ある限りの。考えられる限りの。全て", "ありとあらゆる"], ["少しも。全然", "夢にも"], ["そのことだけに精神を集中する様子。ただただ", "ひたすら"], ["経過。経過。手続き。手順", "プロセス"], ["①やりにくいことを押し切って実行する様子 ②別に。特に。わざわざ（後に打消語を伴う）", "あえて"], ["二番目。一番大事なことではないこと", "二の次"], ["意見の一致。合意。同意", "コンセンサス"], ["動機付け。実行する意欲を起こさせるきっかけ。やる気", "モチベーション"], ["疑いようのないほど確かな様子。由緒正しい", "れっきとした"], ["感覚によってものごとを感じ取る能力。感覚。あるいは『感じる能力（性）』。", "感性"], ["①ものごとの根本を探求する能力。②合理的に考え判断する能力。あるいは『理の能力（性）』。", "理性"], ["思考能力。あるいは『悟る（わかる）能力（性）』。", "悟性"], ["①自分という意識。②自分という意識をもった存在。あるいは『自分の我』。", "自我"], ["①他者がもつ自分という意識。②自分という意識をもった他者。あるいは『他人の我』。", "他我"], ["自分。", "自己"], ["自分以外の存在。", "他者"], ["他から切り離されている一人の人間。", "個人、個"], ["かかわりあっている二人以上の人間。", "社会"], ["他者とのかかわりの中で自分を実感すること。自己同一性。", "アイデンティティ、自己同一性"], ["①制約や束縛からの解放。②自分の思ったとおりにできること。", "自由"], ["一つの国民によって構成される国家。", "国民国家"], ["文化を共有する（と考えられている）集団。国民。", "民族"], ["民衆を政治の中心とする立場。", "民主主義、デモクラシー"], ["資本をもとに利潤を追求する経済体制。", "資本主義"], ["民族主義。国家主義。", "ナショナリズム"], ["世界化。", "グローバリゼーション"], ["根本に戻って考えようとする立場。", "原理主義"], ["すべての文化が同じ価値をもつと考える立場。", "文化相対主義、多文化主義"], ["さまざまな文化が互いにまじりあい、変化し続けているという目線・とらえ方。", "ピジン・クレオール説"], ["世界を区切り、認識すること。", "分節"], ["意味をもつもの。", "記記号"], ["ものごとの意味内容。", "概念"], ["つくりごと。", "虚構、フィクション"], ["人々に共有され、何かを成り立たせる話。", "物語"]]
-            },
-            "英コミュ": {}, "古典": {}, "論表": {} // 必要に応じて追加可能
-        };
+    <div id="sub-category-section" style="display:none;">
+        <h2 id="selected-category-title"></h2>
+        <div id="sub-category-buttons" class="btn-group"></div>
+        <button class="secondary" onclick="backToCategory()">戻る</button>
+    </div>
 
-        let currentCategory = "";
-        let currentDeckName = "";
-        let currentMode = "";
-        let wordList = [];
-        let currentQuestion = null;
+    <div id="mode-section" style="display:none;">
+        <h2 id="selected-sub-title"></h2>
+        <div class="btn-group">
+            <button onclick="startQuiz('normal')">誤は3つ後にするもの</button>
+            <button onclick="startQuiz('both')">前後両方</button>
+            <button onclick="startQuiz('typing')">タイピング</button>
+        </div>
+        <button class="secondary" onclick="backToSubCategory()">戻る</button>
+    </div>
 
-        // 画面切り替え関数
-        function showScreen(screenId) {
-            document.querySelectorAll('body > div').forEach(div => div.classList.add('hidden'));
-            document.getElementById(`screen-${screenId}`).classList.remove('hidden');
-        }
+    <div id="quiz-section" style="display:none;">
+        <h2 id="quiz-title">クイズ中</h2>
+        <div class="quiz-box">
+            <div id="hint-area" class="hint"></div>
+            <div id="problem-text" class="problem"></div>
+            <input type="text" id="answer-input" autocomplete="off" placeholder="答えを入力（空白Enterで次へ）">
+            <button id="submit-btn" onclick="handleNext()">決定 (Enter)</button>
+            <div id="result-text" class="result"></div>
+        </div>
+    </div>
+</div>
 
-        // 1. カテゴリー選択時
-        function selectCategory(category) {
-            currentCategory = category;
-            const deckButtonsDiv = document.getElementById('deck-buttons');
-            deckButtonsDiv.innerHTML = "";
-            
-            const decks = datasets[category];
-            if (decks && Object.keys(decks).length > 0) {
-                document.getElementById('deck-title').innerText = `${category} の単語帳`;
-                Object.keys(decks).forEach(deckName => {
-                    const btn = document.createElement('button');
-                    btn.innerText = deckName;
-                    btn.onclick = () => selectDeck(deckName);
-                    deckButtonsDiv.appendChild(btn);
-                });
-            } else {
-                deckButtonsDiv.innerHTML = "<p>データがありません。</p>";
-            }
-            showScreen('deck');
-        }
+<script>
+// データ定義
+const dataStore = {
+    "現国": {
+        "漢字": [
+            ["昇華", "より高度な状態に高められること"], ["寡黙","ほとんど物を言わないさま"], ["薫陶","人徳によって影響を与え、よい方に導くこと"], ["意匠","物を作る上での工夫"], ["拒否","聞き入れることなくはねつけること"], ["自負","じぶんの能力などにじ信を持つこと"], ["制御","思うように操ること"], ["偏狭","自分だけのせまい考えにとらわれるさま"], ["倒錯","社会的規範に反し異常であること"], ["狭義","せまい方の意味"], ["卑近","手ぢかでありふれているさま"], ["虚構","想像力によって本当のことであるかのように組みたてること"], ["位相","変化するものが特定の場面でとる姿"], ["逸話","世間にあまり知られていないはなし"], ["前提","基礎となる判断・物事をなす土台"], ["情緒","人に感慨をもよおさせる独特の味わい"], ["濃厚","こいさま"], ["駆動","ちからを伝えてうごかすこと"]
+        ],
+        "語彙ノート、キーワード": [
+            ["複数の人が同じようなことを言う", "口をそろえる"], ["思いがけず自然と次から次へと言葉が出る", "口を突いて出る"], ["①どっしりと構え、物事に取り組む ②一所に落ち着く", "腰を据える"], ["ある物事に見込みがないと諦めて手を引く", "さじを投げる"], ["苦労する。努力を要する。困難である", "骨が折れる"], ["素晴らしいものに接して、深く感動・共鳴する", "琴線に触れる"], ["反響をもたらすような問題や意見を投げかける", "一石を投じる"], ["物事の核心をつく。的確に要点をつかむ", "的に射る"], ["〜についてはともかく。〜は別として", "いざ知らず"], ["だまされないように用心する", "眉に唾をつける"], ["自分の考えややり方などにこだわって、まったく変えようとしないこと", "かたくな"], ["状況や表情などの既知の情報から、ほかのことが推測できる", "察しがつく"], ["心の中に思い浮かべる姿や情景", "イメージ"], ["実際と同じような状態をつくり出して実験・研究を行うこと", "シミュレーション"], ["（自らの意志で）精一杯努力する、一生歓め働く", "精を出す"], ["厳しく育てられて成長する", "培われる"], ["あらかじめ出来上がっていること", "出来合い"], ["①きまりが悪い。何となく恥ずかしい ②運が悪い。巡り合わせ・時間が悪い", "間が悪い"], ["（うそや冗談を）言葉どおりに受け取る。本気にする", "真に受ける"], ["劣ったものとして扱う。ばかにする。見見下す", "おとしめる"], ["同じ性質を持つ物事が含まれる範囲", "カテゴリー"], ["体系や秩序。系統立った組織。方式", "システム"], ["連続的な量を区切って、数字で表示すること", "デジタル"], ["（損害・被害を受ける）危険性。危険", "リスク"], ["一つの面や表現が多くの意味を持っているさま", "多義的"], ["①わけ。理由。事情 ②古くからの言い伝え。由緒。由来。来歴", "いわれ"], ["表現があからさまで、含みや味わいがない", "身も蓋もない"], ["実際にはできないが、その気持ちはとても強くある様子", "〜はやまやまだか"], ["うまいことを言って人をだます", "たぶらかす"], ["急に熱を出したり、ぶつけたりするさま", "はたと"], ["間に置く。間に入れる", "介する"], ["すぐ始められるように、また物事がうまく運ぶように、準備を整えること", "お膳立て"], ["①自負。自己意識 ②（エゴイズムの意味で）自分だけよければよいとする考え方。利己主義", "エゴ"], ["気持ちや意見を互いに伝達し合うこと。相互伝達", "コミュニケーション"], ["①抑圧され無意識に形成されるゆがんだ感情 ②劣等感", "コンプレックス"], ["否定的人。消極的", "ネガティブ"], ["他人に対して思いやりや愛想がない様子", "そっけない"], ["どちらかというと。いつも", "むしろ"], ["大勢の人が寄り集まって", "寄ってたかって"], ["今となっては", "もはや"], ["ある動作や行動などに対する結果や反応を見て、軌道修正や調整をすること", "フィードバック"], ["まるで。ちょうど（後に「〜ようだ・〜ごとく」を伴うことが多い）", "あたかも"], ["いいも悪いもかまわず。無理やりに", "いやおうなしに"], ["たとえば言えば。言ってみれば", "言わば"], ["それ以上のものではない。ただ〜なだけだ", "〜にすぎない"], ["ある限りの。考えられる限りの。全て", "ありとあらゆる"], ["少しも。全然", "夢にも"], ["そのことだけに精神を集中する様子。ただただ", "ひたすら"], ["経過。経過。手続き。手順", "プロセス"], ["①やりにくいことを押し切って実行する様子 ②別に。特に。わざわざ（後に打消語を伴う）", "あえて"], ["二番目。一番大事なことではないこと", "二の次"], ["意見の一致。合意。同意", "コンセンサス"], ["動機付け。実行する意欲を起こさせるきっかけ。やる気", "モチベーション"], ["疑いようのないほど確かな様子。由緒正しい", "れっきとした"], ["感覚によってものごとを感じ取る能力。感覚。あるいは『感じる能力（性）』。", "感性"], ["①ものごとの根本を探求する能力。②合理的に考え判断する能力。あるいは『理の能力（性）』。", "理性"], ["思考能力。あるいは『悟る（わかる）能力（性）』。", "悟性"], ["①自分という意識。②自分という意識をもった存在。あるいは『自分の我』。", "自我"], ["①他者がもつ自分という意識。②自分という意識をもった他者。あるいは『他人の我』。", "他我"], ["自分。", "自己"], ["自分以外の存在。", "他者"], ["他から切り離されている一人の人間。", "個人、個"], ["かかわりあっている二人以上の人間。", "社会"], ["他者とのかかわりの中で自分を実感すること。自己同一性。", "アイデンティティ、自己同一性"], ["①制約や束縛からの解放。②自分の思ったとおりにできること。", "自由"], ["一つの国民によって構成される国家。", "国民国家"], ["文化を共有する（と考えられている）集団。国民。", "民族"], ["民衆を政治の中心とする立場。", "民主主義、デモクラシー"], ["資本をもとに利潤を追求する経済体制。", "資本主義"], ["民族主義。国家主義。", "ナショナリズム"], ["世界化。", "グローバリゼーション"], ["根本に戻って考えようとする立場。", "原理主義"], ["すべての文化が同じ価値をもつと考える立場。", "文化相対主義、多文化主義"], ["さまざまな文化が互いにまじりあい、変化し続けているという目線・とらえ方。", "ピジン・クレオール説"], ["世界を区切り、認識すること。", "分節"], ["意味をもつもの。", "記号"], ["ものごとの意味内容。", "概念"], ["つくりごと。", "虚構、フィクション"], ["人々に共有され、何かを成り立たせる話。", "物語"]]
+    },
+    "英コミュ": {}, "古典": {}, "論表": {} // 必要に応じて追加可能
+};
 
-        // 2. 単語帳選択時
-        function selectDeck(deckName) {
-            currentDeckName = deckName;
-            showScreen('mode');
-        }
+let currentCategory = "";
+let currentSubCategory = "";
+let currentMode = "";
+let wordList = [];
+let isShowingResult = false; // 判定画面かどうかのフラグ
 
-        function backToDeck() { selectCategory(currentCategory); }
+// 画面切り替えの簡易制御
+function showSection(id) {
+    ["category-section", "sub-category-section", "mode-section", "quiz-section"].forEach(s => {
+        document.getElementById(s).style.display = (s === id) ? "block" : "none";
+    });
+}
 
-        // 配列シャッフル用関数
-        function shuffle(array) {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-            return array;
-        }
+// 1. カテゴリー選択
+function selectCategory(cat) {
+    currentCategory = cat;
+    const subs = dataStore[cat] || {};
+    const subKeys = Object.keys(subs);
+    
+    if (subKeys.length === 0) {
+        alert("まだこのカテゴリーにデータがありません（現国をお試しください）");
+        return;
+    }
+    
+    document.getElementById("selected-category-title").innerText = cat;
+    const btnGroup = document.getElementById("sub-category-buttons");
+    btnGroup.innerHTML = "";
+    
+    subKeys.forEach(sub => {
+        const btn = document.createElement("button");
+        btn.innerText = sub;
+        btn.onclick = () => selectSubCategory(sub);
+        btnGroup.appendChild(btn);
+    });
+    showSection("sub-category-section");
+}
 
-        // 3. クイズ開始
-        function startQuiz(mode) {
-            currentMode = mode;
-            let originalData = JSON.parse(JSON.stringify(datasets[currentCategory][currentDeckName]));
-            
-            if (mode === 'both') {
-                let bothData = [];
-                originalData.forEach(item => {
-                    bothData.push([item[0], item[1]]);
-                    bothData.push([item[1], item[0]]);
-                });
-                wordList = shuffle(bothData);
-            } else {
-                wordList = shuffle(originalData);
-            }
+function backToCategory() { showSection("category-section"); }
 
-            document.getElementById('quiz-mode-title').innerText = 
-                mode === 'normal' ? "誤は3つ後にするもの" : mode === 'both' ? "前後両方" : "タイピング";
+// 2. サブカテゴリー選択
+function selectSubCategory(sub) {
+    currentSubCategory = sub;
+    document.getElementById("selected-sub-title").innerText = `${currentCategory} > ${sub}`;
+    showSection("mode-section");
+}
 
-            showScreen('quiz');
-            nextQuestion();
-        }
+function backToSubCategory() { showSection("sub-category-section"); }
 
-        // 4. 次の問題を表示
-        function nextQuestion() {
-            document.getElementById('result').innerText = "";
-            document.getElementById('answer-input').value = "";
-            document.getElementById('next-btn').classList.add('hidden');
-            document.getElementById('input-area').classList.remove('hidden');
+// 配列のシャッフル
+function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
 
-            if (wordList.length === 0) {
-                document.getElementById('question-area').innerText = "達成！";
-                document.getElementById('hint-area').innerText = "";
-                document.getElementById('input-area').classList.add('hidden');
-                setTimeout(() => showScreen('mode'), 2000); // 2秒後にモード選択に戻る
-                return;
-            }
-
-            currentQuestion = wordList[0];
-            document.getElementById('question-area').innerText = "問題: " + currentQuestion[0];
-
-            if (currentMode === 'typing') {
-                document.getElementById('hint-area').innerText = "答え: " + currentQuestion[1];
-            } else {
-                document.getElementById('hint-area').innerText = "";
-            }
-
-            // 入力欄にフォーカスを当てる
-            setTimeout(() => document.getElementById('answer-input').focus(), 50);
-        }
-
-        // 5. 判定
-        function checkAnswer() {
-            const inputField = document.getElementById('answer-input');
-            const userAnswer = inputField.value.trim();
-            const resultDiv = document.getElementById('result');
-
-            // 空欄の場合はスキップ（Pythonの挙動再現：リストから消さずに次へ）
-            if (userAnswer === "") {
-                const skipped = wordList.shift();
-                wordList.push(skipped); // 末尾に回す
-                nextQuestion();
-                return;
-            }
-
-            const correctAnswer = currentQuestion[1];
-            wordList.shift(); // 先頭を一旦取り出す
-
-            if (userAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
-                resultDiv.style.color = "green";
-                resultDiv.innerText = "正解";
-            } else {
-                resultDiv.style.color = "red";
-                resultDiv.innerText = `不正解 (正解: ${correctAnswer})`;
-                
-                // 誤は3つ後にするもの（インデックス2の位置に挿入。データが少なければ末尾）
-                const insertIndex = Math.min(2, wordList.length);
-                wordList.splice(insertIndex, 0, currentQuestion);
-            }
-
-            document.getElementById('input-area').classList.add('hidden');
-            document.getElementById('next-btn').classList.remove('hidden');
-            document.getElementById('next-btn').focus();
-        }
-
-        // エンターキーでも送信・次へを行えるように設定
-        document.getElementById('answer-input').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') checkAnswer();
+// 3. クイズ開始
+function startQuiz(mode) {
+    currentMode = mode;
+    let baseList = JSON.parse(JSON.stringify(dataStore[currentCategory][currentSubCategory]));
+    
+    // モードごとの配列調整
+    if (mode === 'both') {
+        let combined = [];
+        baseList.forEach(item => {
+            combined.push([item[0], item[1]]);
+            combined.push([item[1], item[0]]);
         });
-        document.getElementById('next-btn').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') nextQuestion();
-        });
-    </script>
+        baseList = combined;
+    }
+
+    wordList = shuffle(baseList);
+    isShowingResult = false;
+    
+    showSection("quiz-section");
+    nextProblem();
+}
+
+// 問題表示
+function nextProblem() {
+    if (wordList.length === 0) {
+        document.getElementById("hint-area").innerText = "";
+        document.getElementById("problem-text").innerText = "達成！お疲れ様でした。";
+        document.getElementById("answer-input").style.display = "none";
+        document.getElementById("submit-btn").innerText = "最初の画面へ";
+        isShowingResult = "finished";
+        return;
+    }
+
+    const current = wordList[0];
+    document.getElementById("answer-input").style.display = "block";
+    document.getElementById("answer-input").value = "";
+    document.getElementById("result-text").innerText = "";
+    
+    // タイピングモード系ならヒント（答え）を先に出す
+    if (currentMode === 'typing') {
+        document.getElementById("hint-area").innerText = `【タイピング：答えを見ながら入力】答えは「${current[1]}」`;
+    } else {
+        document.getElementById("hint-area").innerText = "";
+    }
+
+    document.getElementById("problem-text").innerText = "問題: " + current[0];
+    document.getElementById("submit-btn").innerText = "決定 (Enter)";
+    
+    // 自動で入力欄にフォーカス
+    setTimeout(() => document.getElementById("answer-input").focus(), 50);
+    isShowingResult = false;
+}
+
+// Enterキーまたは決定ボタンが押された時の処理
+function handleNext() {
+    if (isShowingResult === "finished") {
+        showSection("category-section");
+        return;
+    }
+
+    const inputField = document.getElementById("answer-input");
+    const resultDiv = document.getElementById("result-text");
+    const userAns = inputField.value.trim();
+
+    // 1. 結果表示前の状態（ユーザーが入力してEnterを押した時）
+    if (!isShowingResult) {
+        const current = wordList[0];
+        
+        // 空白でEnterされた場合はPythonコード同様「スルー（リセット）」
+        if (userAns === "") {
+            resultDiv.innerText = "一時保留（Enterで再開）";
+            resultDiv.className = "result";
+            isShowingResult = true;
+            document.getElementById("submit-btn").innerText = "次へ (Enter)";
+            return;
+        }
+
+        // 正誤判定（大文字小文字を区別しない）
+        const isCorrect = (userAns.toLowerCase() === current[1].toLowerCase());
+
+        if (isCorrect) {
+            resultDiv.innerText = "正解！";
+            resultDiv.className = "result correct";
+            wordList.shift(); // 先頭を削除
+        } else {
+            resultDiv.innerText = `不正解（正解: ${current[1]}）`;
+            resultDiv.className = "result incorrect";
+            
+            // モードに応じた不正解処理
+            if (currentMode === 'normal' || currentMode === 'both') {
+                // 3つ後ろ（インデックス2の位置）に挿入
+                const failedItem = wordList.shift();
+                if (wordList.length >= 2) {
+                    wordList.splice(2, 0, failedItem);
+                } else {
+                    wordList.push(failedItem); // 要素が少なければ末尾へ
+                }
+            } else if (currentMode === 'typing') {
+                // タイピングモードは間違えても次へ（3個後ろに送らない）
+                wordList.shift();
+            }
+        }
+        
+        isShowingResult = true;
+        document.getElementById("submit-btn").innerText = "次へ (Enter)";
+    } 
+    // 2. 結果表示中の状態（ユーザーが結果を確認してさらにEnterを押した時）
+    else {
+        nextProblem();
+    }
+}
+
+// 画面のどこにいてもEnterキーで決定・次へを行えるようにするイベント
+window.addEventListener("keydown", function(event) {
+    if (event.key === "Enter") {
+        // 現在クイズ画面が表示されているときのみ反応
+        if (document.getElementById("quiz-section").style.display === "block") {
+            event.preventDefault(); // フォームの誤送信などを防ぐ
+            handleNext();
+        }
+    }
+});
+</script>
+
 </body>
 </html>
