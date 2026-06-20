@@ -5,86 +5,177 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>単語学習アプリ</title>
     <style>
-        body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            background-color: #f5f7fa;
-            color: #333;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-        }
-        .container {
-            background-color: #ffffff;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            width: 90%;
-            max-width: 500px;
-            text-align: center;
-        }
-        h2 { color: #4a5568; margin-bottom: 20px; }
-        .btn-grid {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        button {
-            background-color: #4f46e5;
-            color: white;
-            border: none;
-            padding: 14px;
-            font-size: 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background 0.2s, transform 0.1s;
-            width: 100%;
-        }
-        button:active { transform: scale(0.98); }
-        button:hover { background-color: #4338ca; }
-        button.back-btn { background-color: #718096; margin-top: 15px; }
-        button.back-btn:hover { background-color: #4a5568; }
-        input[type="text"] {
-            width: calc(100% - 24px);
-            padding: 12px;
-            font-size: 16px;
-            border: 2px solid #cbd5e1;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            outline: none;
-        }
-        input[type="text"]:focus { border-color: #4f46e5; }
-        .info { font-size: 14px; color: #718096; margin-top: 5px; }
-        .result { font-weight: bold; font-size: 18px; margin: 15px 0; }
-        .correct { color: #10b981; }
-        .incorrect { color: #ef4444; }
-        .hidden { display: none !important; }
+        body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; text-align: center; }
+        .hidden { display: none; }
+        .btn { display: inline-block; margin: 5px; padding: 10px 20px; font-size: 16px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 5px; }
+        .btn:active { background: #0056b3; }
+        #quiz-area { margin-top: 20px; padding: 20px; border: 1px solid #ccc; border-radius: 5px; }
+        input[type="text"] { font-size: 16px; padding: 5px; width: 80%; margin-bottom: 10px; }
+        #result { font-weight: bold; margin: 10px 0; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div id="screen-category">
+    <div id="view-categories">
         <h2>カテゴリー</h2>
-        <div class="btn-grid">
-            <button onclick="selectCategory('英コミュ')">英コミュ</button>
-            <button onclick="selectCategory('現国')">現国</button>
-            <button onclick="selectCategory('古典')">古典</button>
-            <button onclick="selectCategory('論表')">論表</button>
-        </div>
+        <button class="btn" onclick="selectCategory('英コミュ')">英コミュ</button>
+        <button class="btn" onclick="selectCategory('現国')">現国</button>
+        <button class="btn" onclick="selectCategory('古典')">古典</button>
+        <button class="btn" onclick="selectCategory('論表')">論表</button>
     </div>
 
-    <div id="screen-mode" class="hidden">
-        <h2 id="mode-title">教科名</h2>
-        <div class="btn-grid">
-            <button onclick="selectMode('miss3')">誤は3つ後にするもの</button>
-            <button onclick="selectMode('both')">前後両方</button>
-            <button onclick="selectMode('typing')">タイピング</button>
-            <button class="back-btn" onclick="showScreen('category')">戻る</button>
-        </div>
+    <div id="view-subcategories" class="hidden">
+        <h2 id="selected-category-title"></h2>
+        <button id="sub-category-btn" class="btn" onclick="showModes()"></button>
+        <br><button class="btn" style="background:#6c757d;" onclick="goBack('view-categories')">戻る</button>
     </div>
 
-    <div id="screen-quiz" class="hidden">
-        <h2 id="quiz-progress">残り: 0問</h2>
-        <div id="question-box
+    <div id="view-modes" class="hidden">
+        <h2>モード選択</h2>
+        <button class="btn" onclick="startQuiz('3つ後')">誤は3つ後にするもの</button>
+        <button class="btn" onclick="startQuiz('前後')">前後両方</button>
+        <button class="btn" onclick="startQuiz('タイピング')">タイピング</button>
+        <br><button class="btn" style="background:#6c757d;" onclick="goBack('view-subcategories')">戻る</button>
+    </div>
+
+    <div id="view-quiz" class="hidden">
+        <h2 id="mode-title">クイズ</h2>
+        <div id="quiz-area">
+            <p id="question-text" style="font-size: 18px; font-weight: bold;"></p>
+            <p id="typing-hint" style="color: #666; font-size: 14px;"></p>
+            <input type="text" id="answer-input" placeholder="答えを入力してEnter" onkeydown="if(event.key==='Enter') checkAnswer()">
+            <button class="btn" onclick="checkAnswer()">送信</button>
+            <p id="result"></p>
+            <button id="next-btn" class="btn hidden" onclick="nextQuestion()">次へ</button>
+        </div>
+        <br><button class="btn" style="background:#6c757d;" onclick="goBack('view-modes')">終了して戻る</button>
+    </div>
+
+    <script>
+        // 各カテゴリーに対応する配列データ
+        const rawData = {
+            "英コミュ": [["〜に驚く", "be surprised at"], ["意匠", "物を作る上での工夫"]],
+            "現国": [["昇華", "より高度な状態に高められること"], ["寡黙","ほとんど物を言わないさま"]],
+            "古典": [["薫陶","人徳によって影響を与え、よい方に導くこと"]],
+            "論表": [["〜に驚く", "be surprised at"]]
+        };
+
+        let currentCategory = "";
+        let currentMode = "";
+        let wordList = [];
+        let currentWord = null;
+
+        // 画面切り替えの共通関数
+        function switchView(viewId) {
+            ["view-categories", "view-subcategories", "view-modes", "view-quiz"].forEach(id => {
+                document.getElementById(id).classList.add("hidden");
+            });
+            document.getElementById(viewId).classList.remove("hidden");
+        }
+
+        function goBack(targetView) {
+            switchView(targetView);
+        }
+
+        // 1. カテゴリー選択時
+        function selectCategory(category) {
+            currentCategory = category;
+            document.getElementById("selected-category-title").innerText = category;
+            document.getElementById("sub-category-btn").innerText = category + "のクイズを始める";
+            switchView("view-subcategories");
+        }
+
+        // 2. 名前がついたボタンが押された時、モード選択へ
+        function showModes() {
+            switchView("view-modes");
+        }
+
+        // 3. クイズ開始処理（配列の準備・シャッフル）
+        function startQuiz(mode) {
+            currentMode = mode;
+            document.getElementById("mode-title").innerText = `${currentCategory} [${mode}]`;
+            
+            // 元データのコピーを取得
+            let baseData = JSON.parse(JSON.stringify(rawData[currentCategory]));
+
+            // 「前後両方」モードの場合は、問題を反転させたものも追加
+            if (mode === "前後") {
+                let doubleData = [];
+                baseData.forEach(item => {
+                    doubleData.push([item[0], item[1]]);
+                    doubleData.push([item[1], item[0]]); // 逆にする
+                });
+                baseData = doubleData;
+            }
+
+            // シャッフル
+            wordList = baseData.sort(() => Math.random() - 0.5);
+            
+            switchView("view-quiz");
+            nextQuestion();
+        }
+
+        // 4. 次の問題を表示
+        function nextQuestion() {
+            if (wordList.length === 0) {
+                document.getElementById("quiz-area").innerHTML = "<h3>達成！</h3>";
+                return;
+            }
+
+            currentWord = wordList[0];
+            document.getElementById("result").innerText = "";
+            document.getElementById("answer-input").value = "";
+            document.getElementById("answer-input").disabled = false;
+            document.getElementById("next-btn").classList.add("hidden");
+
+            if (currentMode === "タイピング") {
+                // タイピングモード：問題と答え（a1とa2）の両方を表示し、a2を打たせる
+                document.getElementById("question-text").innerText = `問題: ${currentWord[0]}`;
+                document.getElementById("typing-hint").innerText = `見本: ${currentWord[1]}`;
+            } else {
+                // 通常・前後モード：問題のみ表示
+                document.getElementById("question-text").innerText = `問題: ${currentWord[0]}`;
+                document.getElementById("typing-hint").innerText = "";
+            }
+            document.getElementById("answer-input").focus();
+        }
+
+        // 5. 解答チェック
+        function checkAnswer() {
+            if (document.getElementById("answer-input").disabled) return; // すでに解答済みの場合は無視
+
+            const userAnswer = document.getElementById("answer-input").value.trim();
+            const correctAnswer = currentWord[1];
+            const resultElement = document.getElementById("result");
+
+            // 空欄の場合はスキップ（PythonのEnterキー継続と同じ挙動）
+            if (userAnswer === "") {
+                wordList.shift();
+                wordList.push(currentWord); // パスしたものは最後に回す
+                nextQuestion();
+                return;
+            }
+
+            document.getElementById("answer-input").disabled = true;
+
+            // 判定（大文字小文字を区別しない）
+            if (userAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
+                resultElement.style.color = "green";
+                resultElement.innerText = "正解";
+                wordList.shift(); // 正解なので先頭から削除
+            } else {
+                resultElement.style.color = "red";
+                resultElement.innerText = `不正解（正解: ${correctAnswer}）`;
+                
+                wordList.shift(); // 一度先頭から外して
+                // 誤は3つ後にするもの（インデックス2の位置に挿入。残り少なければ末尾）
+                let insertIndex = Math.min(2, wordList.length);
+                wordList.splice(insertIndex, 0, currentWord);
+            }
+
+            document.getElementById("next-btn").classList.remove("hidden");
+            document.getElementById("next-btn").focus();
+        }
+    </script>
+</body>
+</html>
