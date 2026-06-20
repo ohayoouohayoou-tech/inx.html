@@ -182,4 +182,26 @@
                 if (activeWordList.length >= 2) {
                     activeWordList.splice(2, 0, current);
                 } else {
-                    activeWordList.push(current); // 残りが少
+                    activeWordList.push(current); // 残りが少なければ末尾へ
+                }
+                
+                inputField.disabled = true;
+                isWaitingForNext = true; // 不正解時も確認のためEnter待機状態にする
+            }
+        }
+
+        // 画面切り替えの簡易化関数
+        function switchScreen(screenId) {
+            document.getElementById("category-screen").style.display = "none";
+            document.getElementById("data-screen").style.display = "none";
+            document.getElementById("mode-screen").style.display = "none";
+            document.getElementById("quiz-screen").style.display = "none";
+            document.getElementById(screenId).style.display = "block";
+        }
+
+        // 戻るボタンの制御
+        function backToCategory() { switchScreen("category-screen"); }
+        function backToData() { switchScreen("data-screen"); }
+    </script>
+</body>
+</html>
